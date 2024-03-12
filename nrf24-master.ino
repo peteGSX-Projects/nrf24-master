@@ -59,6 +59,16 @@ void loop() {
     uint32_t data = 0;
     switch (header.type) {
       case 'M':
+        Serial.print(F("Received data: from_node|to_node|id|type|next_id: "));
+        Serial.print(header.from_node, OCT);
+        Serial.print(F("|"));
+        Serial.print(header.to_node, OCT);
+        Serial.print(F("|"));
+        Serial.print(header.id);
+        Serial.print(F("|"));
+        Serial.print(header.type);
+        Serial.print(F("|"));
+        Serial.println(header.next_id);
         network.read(header, &data, sizeof(data));
         Serial.println(data);
         break;
@@ -74,9 +84,9 @@ void loop() {
     Serial.println(" ");
     Serial.println(F("------Assigned Addresses------"));
     for (int i = 0; i < mesh.addrListTop; i++) {
-      Serial.print(F("NodeID: "));
+      Serial.print(F("NodeID|RF24Network Address: "));
       Serial.print(mesh.addrList[i].nodeID);
-      Serial.print(F(" RF24Network Address: 0"));
+      Serial.print(F("|0"));
       Serial.println(mesh.addrList[i].address, OCT);
     }
     Serial.println(F("------------------------------"));
