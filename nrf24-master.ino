@@ -33,6 +33,7 @@ Process:
 
 Questions:
 - What happens if a node doesn't heartbeat, but comes back online with a duplicate ID?
+- Is a node ID processed in one go, or is a queue/delay needed for other nodes requesting an ID?
 */
 
 uint8_t nodeId = 0;
@@ -51,8 +52,14 @@ struct validNode_t {
   uint16_t nodeAddress;
 };
 
-enum HeaderType : uint8_t {
-  NodeIDRequest = 100,
+/*
+Type of the packet. 0 - 127 are user-defined types, 128 - 255 are reserved for system.
+
+User message types 1 through 64 will NOT be acknowledged by the network, while message types 65 through 127 will receive a network ACK.
+System message types 192 through 255 will NOT be acknowledged by the network. Message types 128 through 192 will receive a network ACK.
+*/
+enum PacketType : unsigned char {
+  NodeIDRequest = 0,
 };
 
 void setup() {
