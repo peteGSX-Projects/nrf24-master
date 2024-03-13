@@ -19,6 +19,20 @@ Theory to test for dynamic node IDs:
 
 Extra step so user node's only can join the network:
 - Defined passphrase
+
+Process:
+- Master starts with mesh DHCP active
+- Master has nextNodeID defined as 1 to allocate to the first node request
+- Node starts with node ID 255
+- Node attempts to join mesh and obtain mesh network address
+- Payload should have a type that is a node ID request
+- Master receives node ID request, assigns nextNodeID and increments
+- Node receives nextNodeID
+- Node sets itself to nextNodeID and rejoins network with this ID
+- Node must heartbeat every x seconds to retain node ID
+
+Questions:
+- What happens if a node doesn't heartbeat, but comes back online with a duplicate ID?
 */
 
 uint8_t nodeId = 0;
@@ -30,6 +44,15 @@ unsigned long lastDisplay = 0;
 struct payload_t {
   unsigned long ms;
   unsigned long counter;
+};
+
+struct validNode_t {
+  uint8_t nodeId;
+  uint16_t nodeAddress;
+};
+
+enum HeaderType : uint8_t {
+  NodeIDRequest = 100,
 };
 
 void setup() {
@@ -71,6 +94,11 @@ void loop() {
         Serial.println(header.next_id);
         network.read(header, &data, sizeof(data));
         Serial.println(data);
+        break;
+      
+      case HeaderType::NodeIDRequest:
+        Serial.print(F("Received node ID request from "));
+        Serial.println(header.from_node, OCT);
         break;
 
       default:
