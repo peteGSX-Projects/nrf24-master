@@ -103,7 +103,7 @@ void loop() {
         Serial.println(data);
         break;
       
-      case HeaderType::NodeIDRequest:
+      case PacketType::NodeIDRequest:
         Serial.print(F("Received node ID request from "));
         Serial.println(header.from_node, OCT);
         break;
