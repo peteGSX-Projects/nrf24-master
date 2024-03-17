@@ -59,19 +59,23 @@ System message types 192 through 255 will NOT be acknowledged by the network. Me
  
  */
 enum PacketType : unsigned char {
-  NodeIDRequest = 0,
-  NoAvailableNodeID = 1,
-  InvalidNodeID = 2,
-  NodeHeartbeat = 3,
+  NodeIDRequest = 1,
+  NoAvailableNodeID = 2,
+  InvalidNodeID = 3,
+  NodeHeartbeat = 4,
   TimerData = 65,
 };
 
-// Static array to map valid node IDs to addresses
+// Static array to map valid node IDs to addresses - node ID 255 is reserved
 validNode_t nodeList[255];
 
 void setup() {
   Serial.begin(115200);
   while (!Serial) {}  // some boards need this because of native USB capability
+  for (uint8_t i = 0; i < 255; i++) {
+    nodeList[i].address = 0;
+    nodeList[i].lastSeen = 0;
+  }
   delay(2000);
   Serial.print(F("nRF24L01 mesh testing - "));
   Serial.print(F(" Master, node ID: "));
@@ -105,13 +109,17 @@ void processNetwork() {
   RF24NetworkHeader header;
   network.peek(header);
   uint32_t data = 0;
+  Serial.print(F("Packet type "));
+  Serial.print(header.type);
+  Serial.print(F(" from "));
+  Serial.println(header.from_node, OCT);
   switch (header.type) {
     case PacketType::TimerData:
       processTimerData(header, data);
       break;
     
     case PacketType::NodeIDRequest:
-      allocateNodeID(header);
+      processNodeIDRequest(header);
       break;
 
     case PacketType::NodeHeartbeat:
@@ -136,10 +144,12 @@ void displayAddressList() {
     Serial.println(" ");
     Serial.println(F("------Assigned Addresses------"));
     for (int i = 0; i < mesh.addrListTop; i++) {
-      Serial.print(F("NodeID|RF24Network Address: "));
+      Serial.print(F("NodeID|RF24Network Address:Last seen: "));
       Serial.print(mesh.addrList[i].nodeID);
       Serial.print(F("|0"));
-      Serial.println(mesh.addrList[i].address, OCT);
+      Serial.print(mesh.addrList[i].address, OCT);
+      Serial.print(F("|"));
+      Serial.println(nodeList[mesh.addrList[i].nodeID].lastSeen);
     }
     Serial.println(F("------------------------------"));
   }
@@ -167,7 +177,7 @@ void processTimerData(RF24NetworkHeader header, uint32_t data) {
 }
 
 /**
- * @brief Allocate the next available node ID
+ * @brief Process a request for a node ID
  * Logic:
  * - Default node ID is 255 indicating new ID required
  * - Any nodeList entry with an address of 0 can be allocated
@@ -175,25 +185,35 @@ void processTimerData(RF24NetworkHeader header, uint32_t data) {
  * 
  * @param header RF24NetworkHeader
  */
-void allocateNodeID(RF24NetworkHeader header) {
+void processNodeIDRequest(RF24NetworkHeader header) {
+  uint16_t fromNode = header.from_node;
+  network.read(header, 0, 0);                   // clear our network data
+  Serial.print(F("Node ID request from "));
+  Serial.println(fromNode);
   uint8_t newNodeID = 255;
   for (uint8_t i = 1; i < 255; i++) {
+    Serial.println(nodeList[i].address);
     if (nodeList[i].address == 0) {
       newNodeID = i;
       break;
     }
   }
   if (newNodeID == 255) {
-    // PacketType::NoAvailableNodeID
+    Serial.println(F("No available node IDs to allocate"));
+    RF24NetworkHeader writeHeader(fromNode, PacketType::NoAvailableNodeID);
+    network.write(writeHeader, 0, 0);
   } else {
     // PacketType::NodeIDRequest;
-    uint16_t nodeAddress = header.from_node;
-    nodeList[newNodeID].address = nodeAddress;
+    nodeList[newNodeID].address = fromNode;
     nodeList[newNodeID].lastSeen = millis();
-    // uint16_t nodeAddress = header.from_node;
-    // nodeList[newNodeID] = nodeAddress;
-    // RF24NetworkHeader writeHeader = (nodeAddress, PacketType::NodeIDRequest);
-    // mesh.write(&writeHeader, newNodeID, sizeof(newNodeID));
+    Serial.print(F("Allocated node ID "));
+    Serial.print(newNodeID);
+    Serial.print(F(" to "));
+    Serial.print(nodeList[newNodeID].address, OCT);
+    Serial.print(F(" at "));
+    Serial.println(nodeList[newNodeID].lastSeen);
+    RF24NetworkHeader writeHeader(fromNode, PacketType::NodeIDRequest);
+    network.write(writeHeader, &newNodeID, sizeof(newNodeID));
   }
 }
 
@@ -216,6 +236,7 @@ void validateNodeList() {
  */
 void processHeartbeat(RF24NetworkHeader header) {
   uint16_t nodeAddress = header.from_node;
+  network.read(header, 0, 0);                   // clear our network data
   uint8_t nodeID = mesh.getNodeID(nodeAddress);
   if (nodeList[nodeID].address != nodeAddress) return;
   nodeList[nodeID].lastSeen = millis();
