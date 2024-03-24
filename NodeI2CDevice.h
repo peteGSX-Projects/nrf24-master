@@ -1,16 +1,16 @@
-#ifndef I2CDEVICE_H
-#define I2CDEVICE_H
+#ifndef NODEI2CDEVICE_H
+#define NODEI2CDEVICE_H
 
 #include <Arduino.h>
 
 /// @brief Class for each I2C object detected, with all objects stored in a linked list
-class I2CDevice {
+class NodeI2CDevice {
 public:
   /// @brief Constructor
   /// @param address I2C address of the device
   /// @param muxAddress I2C address of a MUX the device is behind (0 = main bus)
   /// @param muxChannel Channel of a MUX the devices is on (255 = main bus)
-  I2CDevice(uint8_t nodeId, uint8_t address, uint8_t muxAddress, uint8_t muxChannel);
+  NodeI2CDevice(uint8_t nodeId, uint8_t address, uint8_t muxAddress, uint8_t muxChannel);
 
   /// @brief Get the node ID this device is associated with
   /// @return Node ID
@@ -30,11 +30,11 @@ public:
 
   /// @brief Get the first I2C device in the linked list
   /// @return I2C device object
-  static I2CDevice *getFirst();
+  static NodeI2CDevice *getFirst();
 
   /// @brief Get the next I2C device in the linked list
   /// @return I2C device object
-  I2CDevice *getNext();
+  NodeI2CDevice *getNext();
 
   /// @brief Check if the specified I2C address already exists on the main I2C bus
   /// @param address I2C address to check
@@ -51,8 +51,8 @@ private:
   uint8_t _muxAddress;
   uint8_t _muxChannel;
   static uint8_t _deviceCount;
-  static I2CDevice *_first;
-  I2CDevice *_next;
+  static NodeI2CDevice *_first;
+  NodeI2CDevice *_next;
 
 };
 
