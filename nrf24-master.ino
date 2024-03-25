@@ -37,7 +37,8 @@ System message types 192 through 255 will NOT be acknowledged by the network. Me
  */
 enum PacketType : unsigned char {
   NodeHeartbeat = 1,
-  TimerData = 65,
+  RequestDeviceList = 2,
+  NodeDeviceList = 65,
 };
 
 void setup() {
@@ -80,8 +81,8 @@ void processNetwork() {
   Serial.print(F(" from "));
   Serial.println(header.from_node, OCT);
   switch (header.type) {
-    case PacketType::TimerData:
-      processTimerData(header, data);
+    case PacketType::NodeDeviceList:
+      processNodeDevices(header, data);
       break;
     
     default:
@@ -117,7 +118,7 @@ void displayAddressList() {
  * @param header RF24NetworkHeader
  * @param data Timer data in ms
  */
-void processTimerData(RF24NetworkHeader header, uint32_t data) {
+void processNodeDevices(RF24NetworkHeader header, uint32_t data) {
   Serial.print(F("Received data: from_node|to_node|id|type|next_id: "));
   Serial.print(header.from_node, OCT);
   Serial.print(F("|"));
