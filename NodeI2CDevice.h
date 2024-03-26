@@ -3,6 +3,21 @@
 
 #include <Arduino.h>
 
+class MeshNode {
+public:
+  MeshNode(uint8_t nodeId);
+
+  uint8_t getNodeId();
+
+private:
+  uint8_t _nodeId;
+  uint8_t deviceCount;
+  static MeshNode *_first;
+  MeshNode *_next;
+  NodeI2CDevice *_firstDevice;
+
+};
+
 /// @brief Class for each I2C object detected, with all objects stored in a linked list
 class NodeI2CDevice {
 public:

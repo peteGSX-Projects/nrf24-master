@@ -18,6 +18,14 @@ Protocol to send list of I2C devices to the master:
 - Node responds and sends the device list
 - Master acknowledges successful receipt - PacketType::I2CListReceived
 - Master stores in another linked list, this one associated with the node ID
+
+To request device lists, probably need a flag to indicate they're received for each node
+Need two linked lists for this, one for the nodes, and one for the devices
+- Use mesh.addrList to loop through each known node
+- If in linked list, check flag
+- If flag true, move on
+- If flag false, request list
+- Probably need a delay between requests and a retry count perhaps?
 */
 
 unsigned long masterDisplayDelay = 5000;
