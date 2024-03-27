@@ -46,8 +46,8 @@ System message types 192 through 255 will NOT be acknowledged by the network. Me
  */
 enum PacketType : unsigned char {
   NodeHeartbeat = 1,
-  RequestDeviceList = 2,
-  NodeDeviceList = 65,
+  RequestDeviceList = 65,
+  NodeDeviceList = 66,
 };
 
 void setup() {
@@ -150,38 +150,40 @@ void processNodeDevices(RF24NetworkHeader header, uint32_t data) {
  */
 void processNodes() {
   for (uint8_t i = 0; i < mesh.addrListTop; i++) {
+    uint8_t nodeId = mesh.addrList[i].nodeID;
     bool createNode = true;
     for (MeshNode *meshNode = MeshNode::getFirst(); meshNode; meshNode = meshNode->getNext()) {
-      if (meshNode->getNodeId() == i) {
+      if (meshNode->getNodeId() == nodeId) {
         createNode = false;
         if (!meshNode->receivedDeviceList()) {
           unsigned long timeNow = millis();
           if (timeNow - meshNode->getLastDeviceListRequest() > 1000) {
             Serial.print(F("Request device list for node ID "));
-            Serial.println(i);
-            requestNodeDevices(i);
+            Serial.println(nodeId);
+            requestNodeDevices(nodeId);
             meshNode->setLastDeviceListRequest(timeNow);
           }
         }
         continue;
       }
     }
-    if (createNode) {
-      new MeshNode(i);
+    if (createNode || !MeshNode::getFirst()) {
+      new MeshNode(nodeId);
     }
   }
-  for (MeshNode *meshNode = MeshNode::getFirst(); meshNode; meshNode = meshNode->getNext()) {
-    bool deleteNode = true;
-    for (uint8_t i = 0; i < mesh.addrListTop; i++) {
-      if (meshNode->getNodeId() == i) {
-        deleteNode = false;
-        continue;
-      }
-    }
-    if (deleteNode) {
-      meshNode->deleteNode();
-    }
-  }
+  // for (MeshNode *meshNode = MeshNode::getFirst(); meshNode; meshNode = meshNode->getNext()) {
+  //   bool deleteNode = true;
+  //   for (uint8_t i = 0; i < mesh.addrListTop; i++) {
+  //     uint8_t nodeId = mesh.addrList[i].nodeID;
+  //     if (meshNode->getNodeId() == nodeId) {
+  //       deleteNode = false;
+  //       continue;
+  //     }
+  //   }
+  //   if (deleteNode) {
+  //     meshNode->deleteNode();
+  //   }
+  // }
 }
 
 /**

@@ -67,6 +67,8 @@ NodeI2CDevice *MeshNode::getFirstDevice() {
 }
 
 void MeshNode::deleteNode() {
+  Serial.print(F("Deleting mesh node ID "));
+  Serial.println(this->getNodeId());
   if (this == _first) {
     MeshNode *temp = _first;
     _first = _first->getNext();
@@ -90,6 +92,8 @@ void MeshNode::deleteNode() {
 
 MeshNode::~MeshNode() {
   while (_firstDevice != nullptr) {
+        Serial.print(F("Deleting device at address "));
+        Serial.println(_firstDevice->getAddress());
         NodeI2CDevice *temp = _firstDevice;
         _firstDevice = _firstDevice->getNext();
         delete temp;
