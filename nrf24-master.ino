@@ -3,6 +3,7 @@
 #include "RF24Mesh.h"
 #include <SPI.h>
 #include "config.h"
+#include "NodeI2CDevice.h"
 
 /**** Configure the nrf24l01 CE and CS pins ****/
 RF24 radio(CE_PIN, CS_PIN);
@@ -74,6 +75,7 @@ void loop() {
     processNetwork();
   }
   displayAddressList();
+  processNodes();
 }
 
 /**
@@ -139,4 +141,55 @@ void processNodeDevices(RF24NetworkHeader header, uint32_t data) {
   Serial.println(header.next_id);
   network.read(header, &data, sizeof(data));
   Serial.println(data);
+}
+
+/**
+ * @brief Function to ensure all nodes on the mesh have been queried for a device list
+ * and deletes nodes no longer in the mesh
+ * 
+ */
+void processNodes() {
+  for (uint8_t i = 0; i < mesh.addrListTop; i++) {
+    bool createNode = true;
+    for (MeshNode *meshNode = MeshNode::getFirst(); meshNode; meshNode = meshNode->getNext()) {
+      if (meshNode->getNodeId() == i) {
+        createNode = false;
+        if (!meshNode->receivedDeviceList()) {
+          unsigned long timeNow = millis();
+          if (timeNow - meshNode->getLastDeviceListRequest() > 1000) {
+            Serial.print(F("Request device list for node ID "));
+            Serial.println(i);
+            requestNodeDevices(i);
+            meshNode->setLastDeviceListRequest(timeNow);
+          }
+        }
+        continue;
+      }
+    }
+    if (createNode) {
+      new MeshNode(i);
+    }
+  }
+  for (MeshNode *meshNode = MeshNode::getFirst(); meshNode; meshNode = meshNode->getNext()) {
+    bool deleteNode = true;
+    for (uint8_t i = 0; i < mesh.addrListTop; i++) {
+      if (meshNode->getNodeId() == i) {
+        deleteNode = false;
+        continue;
+      }
+    }
+    if (deleteNode) {
+      meshNode->deleteNode();
+    }
+  }
+}
+
+/**
+ * @brief Request the list of I2C devices from the specified node ID
+ * 
+ * @param nodeId ID of the node to request the device list from
+ */
+void requestNodeDevices(uint8_t nodeId) {
+  uint8_t data = 0;
+  mesh.write(&data, PacketType::NodeDeviceList, sizeof(data), nodeId);
 }
