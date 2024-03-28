@@ -193,5 +193,5 @@ void processNodes() {
  */
 void requestNodeDevices(uint8_t nodeId) {
   uint8_t data = 0;
-  mesh.write(&data, PacketType::NodeDeviceList, sizeof(data), nodeId);
+  mesh.write(&data, PacketType::RequestDeviceList, sizeof(data), nodeId);
 }
