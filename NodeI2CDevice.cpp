@@ -20,6 +20,14 @@ uint8_t MeshNode::getNodeId() {
   return _nodeId;
 }
 
+void MeshNode::setExpectedDeviceCount(uint8_t deviceCount) {
+  _expectedDeviceCount = deviceCount;
+}
+
+uint8_t MeshNode::getExpectedDeviceCount() {
+  return _expectedDeviceCount;
+}
+
 uint8_t MeshNode::getDeviceCount() {
   return _deviceCount;
 }
@@ -60,6 +68,14 @@ void MeshNode::addDevice(uint8_t address, uint8_t muxAddress, uint8_t muxChannel
     current->setNext(newDevice);
   }
   _deviceCount++;
+  Serial.print(F("New device address|MUX|channel|count: 0x"));
+  Serial.print(newDevice->getAddress(), HEX);
+  Serial.print(F("|0x"));
+  Serial.print(newDevice->getMUXAddress(), HEX);
+  Serial.print(F("|"));
+  Serial.print(newDevice->getMUXChannel());
+  Serial.print(F("|"));
+  Serial.println(_deviceCount);
 }
 
 NodeI2CDevice *MeshNode::getFirstDevice() {
@@ -98,6 +114,24 @@ MeshNode::~MeshNode() {
         _firstDevice = _firstDevice->getNext();
         delete temp;
     }
+}
+
+void MeshNode::setDeviceList(byte *deviceBuffer, size_t bufferSize) {
+  size_t offset = 0;
+  // If we have an existing device list, delete it first
+  while (_firstDevice != nullptr) {
+    NodeI2CDevice *temp = _firstDevice;
+    _firstDevice = _firstDevice->getNext();
+    delete temp;
+  }
+  _firstDevice = nullptr;
+  _deviceCount = 0;
+  while (offset < bufferSize) {
+    uint8_t address = deviceBuffer[offset++];
+    uint8_t muxAddress = deviceBuffer[offset++];
+    uint8_t muxChannel = deviceBuffer[offset++];
+    addDevice(address, muxAddress, muxChannel);
+  }
 }
 
 NodeI2CDevice::NodeI2CDevice(uint8_t address, uint8_t muxAddress, uint8_t muxChannel) :

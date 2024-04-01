@@ -6,6 +6,7 @@
 class NodeI2CDevice;
 
 class MeshNode {
+
 public:
   /// @brief Constructor
   /// @param nodeId Node ID - valid is 1 to 255, 0 defines invalid (master can only be 0)
@@ -15,7 +16,15 @@ public:
   /// @return Node ID
   uint8_t getNodeId();
 
-  /// @brief Get the number of devices attached to this node
+  /// @brief Set the number of devices attached to the node
+  /// @param deviceCount Number of devices received from the node
+  void setExpectedDeviceCount(uint8_t deviceCount);
+
+  /// @brief Get the expected number of devices attached to this node
+  /// @return Expected number of devices reported by the node
+  uint8_t getExpectedDeviceCount();
+
+  /// @brief Get the counted number of devices attached to this node
   /// @return Count of devices attached to this node
   uint8_t getDeviceCount();
 
@@ -58,8 +67,14 @@ public:
   /// @brief Destructor, which also deletes all associated devices
   ~MeshNode();
 
+  /// @brief Set this node's device list using the buffer containing the serialised devices
+  /// @param deviceBuffer Pointer to the buffer containing the serialised devices
+  /// @param bufferSize Size of the buffer
+  void setDeviceList(byte *deviceBuffer, size_t bufferSize);
+
 private:
   uint8_t _nodeId;
+  uint8_t _expectedDeviceCount;
   uint8_t _deviceCount;
   unsigned long _lastDeviceListRequest;
   bool _receivedDeviceList;

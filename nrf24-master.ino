@@ -46,8 +46,10 @@ System message types 192 through 255 will NOT be acknowledged by the network. Me
  */
 enum PacketType : unsigned char {
   NodeHeartbeat = 1,
-  RequestDeviceList = 65,
-  NodeDeviceList = 66,
+  RequestDeviceCount = 65,
+  NodeDeviceCount = 66,
+  RequestDeviceList = 67,
+  NodeDeviceList = 68,
 };
 
 void setup() {
@@ -85,12 +87,16 @@ void loop() {
 void processNetwork() {
   RF24NetworkHeader header;
   network.peek(header);
-  uint32_t data = 0;
+  unsigned long data;
   Serial.print(F("Packet type "));
   Serial.print(header.type);
   Serial.print(F(" from "));
   Serial.println(header.from_node, OCT);
   switch (header.type) {
+    case PacketType::NodeDeviceCount:
+      processNodeDeviceCount(header, data);
+      break;
+    
     case PacketType::NodeDeviceList:
       processNodeDevices(header, data);
       break;
@@ -113,23 +119,61 @@ void displayAddressList() {
     Serial.println(" ");
     Serial.println(F("------Assigned Addresses------"));
     for (int i = 0; i < mesh.addrListTop; i++) {
-      Serial.print(F("NodeID|RF24Network Address: "));
+      Serial.print(F("NodeID|RF24Network Address|Devices: "));
       Serial.print(mesh.addrList[i].nodeID);
       Serial.print(F("|0"));
-      Serial.println(mesh.addrList[i].address, OCT);
+      Serial.print(mesh.addrList[i].address, OCT);
+      uint8_t deviceCount = 0;
+      for (MeshNode *meshNode = MeshNode::getFirst(); meshNode; meshNode = meshNode->getNext()) {
+        if (meshNode->getNodeId() == mesh.addrList[i].nodeID) {
+          deviceCount = meshNode->getExpectedDeviceCount();
+          continue;
+        }
+      }
+      Serial.print(F("|"));
+      Serial.println(deviceCount);
     }
     Serial.println(F("------------------------------"));
   }
 }
 
 /**
- * @brief Process incoming timer data from a node
+ * @brief Process the device count received from a node
  * 
  * @param header RF24NetworkHeader
- * @param data Timer data in ms
+ * @param data Device count
  */
-void processNodeDevices(RF24NetworkHeader header, uint32_t data) {
-  Serial.print(F("Received data: from_node|to_node|id|type|next_id: "));
+void processNodeDeviceCount(RF24NetworkHeader header, unsigned long data) {
+  int16_t nodeId = mesh.getNodeID(header.from_node);
+  network.read(header, &data, sizeof(data));
+  Serial.print(F("Node ID|Device count: "));
+  Serial.print(nodeId);
+  Serial.print(F("|"));
+  Serial.println(data);
+  for (MeshNode *meshNode = MeshNode::getFirst(); meshNode; meshNode = meshNode->getNext()) {
+    if (meshNode->getNodeId() == nodeId) {
+      meshNode->setExpectedDeviceCount(data);
+      requestNodeDeviceList(nodeId);
+      break;
+    }
+  }
+}
+
+/**
+ * @brief Process the list of devices received from a node
+ * 
+ * @param header RF24NetworkHeader
+ * @param data Device list
+ */
+void processNodeDevices(RF24NetworkHeader header, unsigned long data) {
+  int16_t nodeId = mesh.getNodeID(header.from_node);
+  network.read(header, &data, sizeof(data));
+  byte buffer[sizeof(data)];
+  for (size_t i = 0; i < sizeof(data); i++) {
+    buffer[i] = (data >> (i * 8)) & 0xFF;
+  }
+  size_t bufferSize = sizeof(data);
+  Serial.print(F("Received data: from_node|to_node|id|type|next_id|data|array: "));
   Serial.print(header.from_node, OCT);
   Serial.print(F("|"));
   Serial.print(header.to_node, OCT);
@@ -138,9 +182,28 @@ void processNodeDevices(RF24NetworkHeader header, uint32_t data) {
   Serial.print(F("|"));
   Serial.print(header.type);
   Serial.print(F("|"));
-  Serial.println(header.next_id);
-  network.read(header, &data, sizeof(data));
-  Serial.println(data);
+  Serial.print(header.next_id);
+  Serial.print(F("|"));
+  Serial.print(data);
+  Serial.print(F("|"));
+  for (uint8_t i = 0; i < bufferSize; i++) {
+    Serial.print(buffer[i]);
+  }
+  Serial.println(F(""));
+  for (MeshNode *meshNode = MeshNode::getFirst(); meshNode; meshNode = meshNode->getNext()) {
+    if (meshNode->getNodeId() == nodeId) {
+      meshNode->setDeviceList(buffer, bufferSize);
+      if (meshNode->getExpectedDeviceCount() == meshNode->getDeviceCount()) {
+        meshNode->setReceivedDeviceList();
+      } else {
+        Serial.print(F("Expected count|Actual count: "));
+        Serial.print(meshNode->getExpectedDeviceCount());
+        Serial.print(F("|"));
+        Serial.println(meshNode->getDeviceCount());
+      }
+      break;
+    }
+  }
 }
 
 /**
@@ -160,7 +223,7 @@ void processNodes() {
           if (timeNow - meshNode->getLastDeviceListRequest() > 1000) {
             Serial.print(F("Request device list for node ID "));
             Serial.println(nodeId);
-            requestNodeDevices(nodeId);
+            requestNodeDeviceCount(nodeId);
             meshNode->setLastDeviceListRequest(timeNow);
           }
         }
@@ -171,19 +234,29 @@ void processNodes() {
       new MeshNode(nodeId);
     }
   }
-  // for (MeshNode *meshNode = MeshNode::getFirst(); meshNode; meshNode = meshNode->getNext()) {
-  //   bool deleteNode = true;
-  //   for (uint8_t i = 0; i < mesh.addrListTop; i++) {
-  //     uint8_t nodeId = mesh.addrList[i].nodeID;
-  //     if (meshNode->getNodeId() == nodeId) {
-  //       deleteNode = false;
-  //       continue;
-  //     }
-  //   }
-  //   if (deleteNode) {
-  //     meshNode->deleteNode();
-  //   }
-  // }
+  for (MeshNode *meshNode = MeshNode::getFirst(); meshNode; meshNode = meshNode->getNext()) {
+    bool deleteNode = true;
+    for (uint8_t i = 0; i < mesh.addrListTop; i++) {
+      uint8_t nodeId = mesh.addrList[i].nodeID;
+      if (meshNode->getNodeId() == nodeId) {
+        deleteNode = false;
+        continue;
+      }
+    }
+    if (deleteNode) {
+      meshNode->deleteNode();
+    }
+  }
+}
+
+/**
+ * @brief Request the number of devices the specified node ID has
+ * 
+ * @param nodeId ID of the node to request the device count from
+ */
+void requestNodeDeviceCount(uint8_t nodeId) {
+  uint8_t data = 0;
+  mesh.write(&data, PacketType::RequestDeviceCount, sizeof(data), nodeId);
 }
 
 /**
@@ -191,7 +264,7 @@ void processNodes() {
  * 
  * @param nodeId ID of the node to request the device list from
  */
-void requestNodeDevices(uint8_t nodeId) {
+void requestNodeDeviceList(uint8_t nodeId) {
   uint8_t data = 0;
   mesh.write(&data, PacketType::RequestDeviceList, sizeof(data), nodeId);
 }
