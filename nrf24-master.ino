@@ -4,6 +4,7 @@
 #include <SPI.h>
 #include "config.h"
 #include "NodeI2CDevice.h"
+#include "SerialFunctions.h"
 
 /**** Configure the nrf24l01 CE and CS pins ****/
 RF24 radio(CE_PIN, CS_PIN);
@@ -76,8 +77,9 @@ void loop() {
   if (network.available()) {
     processNetwork();
   }
-  displayAddressList();
-  processNodes();
+  processSerialInput(&mesh);
+  // displayAddressList();
+  // processNodes();
 }
 
 /**
