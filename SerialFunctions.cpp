@@ -48,9 +48,20 @@ void processSerialInput(RF24Mesh *mesh) {
       pin = strtoul(strtokIndex, NULL, 10);
       strtokIndex = strtok(NULL, " ");
       state = strtoul(strtokIndex, NULL, 10); // get value of the angle or dimming
+    } else if (activity == 'A' | activity == 'D' || activity == 'S' || activity == 'V') {
+      nodeId = strtoul(strtokIndex, NULL, 10);
+      strtokIndex = strtok(NULL, " ");
     }
     switch (activity) {
+      case 'A':
+        Serial.println(F("Read remote I2C device's analogue pin"));
+        break;
+      
       case 'D':
+        Serial.println(F("Read remote I2C device's digital pin"));
+        break;
+      
+      case 'N':
         displayNetworkNodes(mesh);
         break;
 
@@ -59,10 +70,21 @@ void processSerialInput(RF24Mesh *mesh) {
         break;
 
       case 'P':
+        Serial.println(F("Set network node's digital pin state"));
         setNodePin(mesh, nodeId, pin, state);
         break;
 
+      case 'S':
+        Serial.println(F("Set remote I2C device's PWM value"));
+        break;
+
+      case 'V':
+        Serial.println(F("Set remote I2C device's digital pin state"));
+        break;
+
       default:
+        Serial.println(F("Invalid activity"));
+        displayHelp();
         break;
     }
   }
@@ -71,7 +93,7 @@ void processSerialInput(RF24Mesh *mesh) {
 void displayHelp() {
   Serial.println(F("Commands:"));
   Serial.println(F("H - Display this help"));
-  Serial.println(F("D - Display all network nodes"));
+  Serial.println(F("N - Display all network nodes"));
   Serial.println(F("P nodeId pin state - Set state of the pin on the node"));
 }
 

@@ -12,22 +12,15 @@ RF24Network network(radio);
 RF24Mesh mesh(radio, network);
 
 /*
-Protocol to send list of I2C devices to the master:
-- At node startup, I2C scan first
-- Start networking when scan complete
-- Network joining completed next
-- Master requests the device list - PacketType::RequestI2CList
-- Node responds and sends the device list
-- Master acknowledges successful receipt - PacketType::I2CListReceived
-- Master stores in another linked list, this one associated with the node ID
+Updated logic to implement:
+- Serial command instructions to set pin states
+- <P nodeId pin state> - Set the specified pin on the network node high/low
+- <S nodeId muxAddress muxChannel deviceAddress servoPWM> - Set servo on I2C device to PWM value
+- <V nodeId muxAddress muxChannel deviceAddress pin state> - Set (v)pin on I2C device high/low
 
-To request device lists, probably need a flag to indicate they're received for each node
-Need two linked lists for this, one for the nodes, and one for the devices
-- Use mesh.addrList to loop through each known node
-- If in linked list, check flag
-- If flag true, move on
-- If flag false, request list
-- Probably need a delay between requests and a retry count perhaps?
+Need to receive values also:
+- <A nodeId muxAddress muxChannel deviceAddress pin> - Read analogue value from I2C device pin
+- <D nodeId muxAddress muxChannel deviceAddress pin> - Read digital state from I2C device pin
 */
 
 unsigned long masterDisplayDelay = 5000;
