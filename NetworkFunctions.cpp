@@ -1,0 +1,157 @@
+#include "NetworkFunctions.h"
+
+/**** Configure the nrf24l01 CE and CS pins ****/
+RF24 radio(CE_PIN, CS_PIN);
+RF24Network network(radio);
+RF24Mesh mesh(radio, network);
+
+
+void setupNetwork() {
+  Serial.print(F("Setup network master, node ID: "));
+  mesh.setNodeID(0);
+  Serial.println(mesh.getNodeID());
+  radio.begin();
+  radio.setPALevel(RF24_PA_MIN, 0);
+  if (!mesh.begin()) {
+    Serial.println(F("Radio hardware not responding"));
+    while(1) {}
+  } else {
+    Serial.println(F("Radio online"));
+  }
+}
+
+
+void processMesh() {
+  mesh.update();
+  mesh.DHCP();
+}
+
+/**
+ * @brief Process incoming network traffic according to type.
+ * 
+ */
+void processNetwork() {
+  if (network.available()) {
+    RF24NetworkHeader header;
+    network.peek(header);
+    // unsigned long data;
+    Serial.print(F("Packet type "));
+    Serial.print(header.type);
+    Serial.print(F(" from "));
+    Serial.println(header.from_node, OCT);
+    switch (header.type) {
+      // case PacketType::NodeDeviceCount:
+      //   processNodeDeviceCount(header, data);
+      //   break;
+      
+      // case PacketType::NodeDeviceList:
+      //   processNodeDevices(header, data);
+      //   break;
+      
+      default:
+        network.read(header, 0, 0);
+        Serial.print(F("Unknown header received: "));
+        Serial.println(header.type);
+        break;
+    }
+  }
+}
+
+uint16_t readAnaloguePin(RF24Mesh *mesh, uint8_t nodeId, uint8_t muxAddress, uint8_t muxChannel, uint8_t deviceAddress, uint8_t pin) {
+  int16_t nodeAddress = mesh->getAddress(nodeId);
+  Serial.print(F("Read analogue pin: Node|Address|MUX|Channel|Device|Pin: "));
+  Serial.print(nodeId);
+  Serial.print(F("|"));
+  Serial.print(nodeAddress, OCT);
+  Serial.print(F("|0x"));
+  Serial.print(muxAddress, HEX);
+  Serial.print(F("|"));
+  Serial.print(muxChannel);
+  Serial.print(F("|0x"));
+  Serial.print(deviceAddress, HEX);
+  Serial.print(F("|"));
+  Serial.println(pin);
+  return 0;
+}
+
+bool readDigitalPin(RF24Mesh *mesh, uint8_t nodeId, uint8_t muxAddress, uint8_t muxChannel, uint8_t deviceAddress, uint8_t pin) {
+  int16_t nodeAddress = mesh->getAddress(nodeId);
+  Serial.print(F("Read digital pin: Node|Address|MUX|Channel|Device|Pin: "));
+  Serial.print(nodeId);
+  Serial.print(F("|"));
+  Serial.print(nodeAddress, OCT);
+  Serial.print(F("|0x"));
+  Serial.print(muxAddress, HEX);
+  Serial.print(F("|"));
+  Serial.print(muxChannel);
+  Serial.print(F("|0x"));
+  Serial.print(deviceAddress, HEX);
+  Serial.print(F("|"));
+  Serial.println(pin);
+  return 0;
+}
+
+void setNetworkNodePin(RF24Mesh *mesh, uint8_t nodeId, uint8_t pin, bool state) {
+  int16_t nodeAddress = mesh->getAddress(nodeId);
+  Serial.print(F("Set pin state Node|Address|Pin|State: "));
+  Serial.print(nodeId);
+  Serial.print(F("|"));
+  Serial.print(nodeAddress, OCT);
+  Serial.print(F("|"));
+  Serial.print(pin);
+  Serial.print(F("|"));
+  Serial.println(state);
+  if (!mesh->write(nodeAddress, &state, PacketType::SetDigitalPin, sizeof(state))) {
+    Serial.println(F("Network node could not be written to"));
+  }
+}
+
+bool readNetworkNodePin(RF24Mesh *mesh, uint8_t nodeId, uint8_t pin) {
+  int16_t nodeAddress = mesh->getAddress(nodeId);
+  Serial.print(F("Read pin state Node|Address|Pin: "));
+  Serial.print(nodeId);
+  Serial.print(F("|"));
+  Serial.print(nodeAddress, OCT);
+  Serial.print(F("|"));
+  Serial.println(pin);
+  if (!mesh->write(nodeAddress, &pin, PacketType::ReadDigitalPin, sizeof(pin))) {
+    Serial.println(F("Network node could not be written to"));
+  }
+  return true;
+}
+
+void setPWMPin(RF24Mesh *mesh, uint8_t nodeId, uint8_t muxAddress, uint8_t muxChannel, uint8_t deviceAddress, uint8_t pin, uint16_t pwmValue) {
+  int16_t nodeAddress = mesh->getAddress(nodeId);
+  Serial.print(F("Set PWM pin: Node|Address|MUX|Channel|Device|Pin|PWM: "));
+  Serial.print(nodeId);
+  Serial.print(F("|"));
+  Serial.print(nodeAddress, OCT);
+  Serial.print(F("|0x"));
+  Serial.print(muxAddress, HEX);
+  Serial.print(F("|"));
+  Serial.print(muxChannel);
+  Serial.print(F("|0x"));
+  Serial.print(deviceAddress, HEX);
+  Serial.print(F("|"));
+  Serial.print(pin);
+  Serial.print(F("|"));
+  Serial.println(pwmValue);
+}
+
+void setDigitalPin(RF24Mesh *mesh, uint8_t nodeId, uint8_t muxAddress, uint8_t muxChannel, uint8_t deviceAddress, uint8_t pin, bool state) {
+  int16_t nodeAddress = mesh->getAddress(nodeId);
+  Serial.print(F("Set digital pin: Node|Address|MUX|Channel|Device|Pin|State: "));
+  Serial.print(nodeId);
+  Serial.print(F("|"));
+  Serial.print(nodeAddress, OCT);
+  Serial.print(F("|0x"));
+  Serial.print(muxAddress, HEX);
+  Serial.print(F("|"));
+  Serial.print(muxChannel);
+  Serial.print(F("|0x"));
+  Serial.print(deviceAddress, HEX);
+  Serial.print(F("|"));
+  Serial.print(pin);
+  Serial.print(F("|"));
+  Serial.println(state);
+}

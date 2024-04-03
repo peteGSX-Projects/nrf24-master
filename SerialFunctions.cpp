@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include "SerialFunctions.h"
+#include "NetworkFunctions.h"
 
 bool newSerialData = false;   // Flag for new serial data being received
 const byte numSerialChars = 20;   // Max number of chars for serial input
@@ -39,27 +40,27 @@ void processSerialInput(RF24Mesh *mesh) {
     strtokIndex = strtok(serialInputChars," ");
     char activity = strtokIndex[0];    // activity is our first parameter
     strtokIndex = strtok(NULL," ");       // space is null, separator
-    uint8_t nodeId;
-    uint8_t muxAddress;
-    uint8_t muxChannel;
-    uint8_t deviceAddress;
-    uint8_t pin;
-    bool state;
-    uint16_t pwm;
+    uint8_t nodeId = 0;
+    uint8_t muxAddress = 0;
+    uint8_t muxChannel = 0;
+    uint8_t deviceAddress = 0;
+    uint8_t pin = 0;
+    bool state = 0;
+    uint16_t pwm = 0;
     if (activity == 'P') {
       nodeId = strtoul(strtokIndex, NULL, 10);
       strtokIndex = strtok(NULL, " ");
       pin = strtoul(strtokIndex, NULL, 10);
       strtokIndex = strtok(NULL, " ");
       state = strtoul(strtokIndex, NULL, 10); // get value of the angle or dimming
-    } else if (activity == 'A' | activity == 'D' || activity == 'S' || activity == 'V') {
+    } else if (activity == 'A' || activity == 'D' || activity == 'S' || activity == 'V') {
       nodeId = strtoul(strtokIndex, NULL, 10);
       strtokIndex = strtok(NULL, " ");
-      muxAddress = strtoul(strtokIndex, NULL, 10);
+      muxAddress = strtoul(strtokIndex, NULL, 16);
       strtokIndex = strtok(NULL, " ");
       muxChannel = strtoul(strtokIndex, NULL, 10);
       strtokIndex = strtok(NULL, " ");
-      deviceAddress = strtoul(strtokIndex, NULL, 10);
+      deviceAddress = strtoul(strtokIndex, NULL, 16);
       strtokIndex = strtok(NULL, " ");
       pin = strtoul(strtokIndex, NULL, 10);
       if (activity == 'S') {
@@ -74,11 +75,18 @@ void processSerialInput(RF24Mesh *mesh) {
       case 'A':
         // <A nodeId muxAddress muxChannel deviceAddress pin> - Read analogue value from I2C device pin
         Serial.println(F("Read remote I2C device's analogue pin"));
+        readAnaloguePin(mesh, nodeId, muxAddress, muxChannel, deviceAddress, pin);
         break;
       
       case 'D':
         // <D nodeId muxAddress muxChannel deviceAddress pin> - Read digital state from I2C device pin
         Serial.println(F("Read remote I2C device's digital pin"));
+        readDigitalPin(mesh, nodeId, muxAddress, muxAddress, deviceAddress, pin);
+        break;
+      
+      case 'H':
+        // <H> display help
+        displayHelp();
         break;
       
       case 'N':
@@ -86,25 +94,28 @@ void processSerialInput(RF24Mesh *mesh) {
         displayNetworkNodes(mesh);
         break;
 
-      case 'H':
-        // <H> display help
-        displayHelp();
-        break;
-
       case 'P':
         // <P nodeId pin state> - Set the specified pin on the network node high/low
         Serial.println(F("Set network node's digital pin state"));
-        setNodePin(mesh, nodeId, pin, state);
+        setNetworkNodePin(mesh, nodeId, pin, state);
+        break;
+
+      case 'Q':
+        // <Q nodeId pin> - Read network node's digital pin
+        Serial.println(F("Read network node's digital pin state"));
+        readNetworkNodePin(mesh, nodeId, pin);
         break;
 
       case 'S':
         // <S nodeId muxAddress muxChannel deviceAddress pin servoPWM> - Set servo on I2C device to PWM value
         Serial.println(F("Set remote I2C device's PWM value"));
+        setPWMPin(mesh, nodeId, muxAddress, muxChannel, deviceAddress, pin, pwm);
         break;
 
       case 'V':
         // <V nodeId muxAddress muxChannel deviceAddress pin state> - Set (v)pin on I2C device high/low
         Serial.println(F("Set remote I2C device's digital pin state"));
+        setDigitalPin(mesh, nodeId, muxAddress, muxChannel, deviceAddress, pin, state);
         break;
 
       default:
@@ -117,9 +128,13 @@ void processSerialInput(RF24Mesh *mesh) {
 
 void displayHelp() {
   Serial.println(F("Commands:"));
-  Serial.println(F("H - Display this help"));
-  Serial.println(F("N - Display all network nodes"));
-  Serial.println(F("P nodeId pin state - Set state of the pin on the node"));
+  Serial.println(F("<A nodeId muxAddress muxChannel deviceAddress pin> - Read analogue value from I2C device pin"));
+  Serial.println(F("<D nodeId muxAddress muxChannel deviceAddress pin> - Read digital state from I2C device pin"));
+  Serial.println(F("<H> - Display this help"));
+  Serial.println(F("<N> - Display all network nodes"));
+  Serial.println(F("<P nodeId pin state> - Set state of the pin on the node"));
+  Serial.println(F("<S nodeId muxAddress muxChannel deviceAddress pin servoPWM> - Set servo on I2C device to PWM value"));
+  Serial.println(F("<V nodeId muxAddress muxChannel deviceAddress pin state> - Set (v)pin on I2C device high/low"));
 }
 
 void displayNetworkNodes(RF24Mesh *mesh) {
@@ -132,13 +147,4 @@ void displayNetworkNodes(RF24Mesh *mesh) {
     Serial.println(mesh->addrList[i].address, OCT);
   }
   Serial.println(F("------------------------------"));
-}
-
-void setNodePin(RF24Mesh *mesh, uint8_t nodeId, uint8_t pin, bool state) {
-  Serial.print(F("Set pin Node|Pin|State: "));
-  Serial.print(nodeId);
-  Serial.print(F("|"));
-  Serial.print(pin);
-  Serial.print(F("|"));
-  Serial.println(state);
 }
