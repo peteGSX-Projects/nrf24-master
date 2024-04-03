@@ -33,8 +33,9 @@ void processMesh();
 void processNetwork();
 uint16_t readAnaloguePin(RF24Mesh *mesh, uint8_t nodeId, uint8_t muxAddress, uint8_t muxChannel, uint8_t deviceAddress, uint8_t pin);  // <A ...>
 bool readDigitalPin(RF24Mesh *mesh, uint8_t nodeId, uint8_t muxAddress, uint8_t muxChannel, uint8_t deviceAddress, uint8_t pin);  // <D ...>
-void setNetworkNodePin(RF24Mesh *mesh, uint8_t nodeId, uint8_t pin, bool state); // <P ...>
+bool setNetworkNodePin(RF24Mesh *mesh, uint8_t nodeId, uint8_t pin, bool state); // <P ...>
 bool readNetworkNodePin(RF24Mesh *mesh, uint8_t nodeId, uint8_t pin);  // <Q ...>
+void processNetworkNodePin(RF24NetworkHeader &header, RF24Network &network, RF24Mesh &mesh);
 void setPWMPin(RF24Mesh *mesh, uint8_t nodeId, uint8_t muxAddress, uint8_t muxChannel, uint8_t deviceAddress, uint8_t pin, uint16_t pwmValue);  // <S ...>
 void setDigitalPin(RF24Mesh *mesh, uint8_t nodeId, uint8_t muxAddress, uint8_t muxChannel, uint8_t deviceAddress, uint8_t pin, bool state);  // <V ...>
 

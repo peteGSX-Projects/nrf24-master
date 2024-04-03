@@ -47,12 +47,14 @@ void processSerialInput(RF24Mesh *mesh) {
     uint8_t pin = 0;
     bool state = 0;
     uint16_t pwm = 0;
-    if (activity == 'P') {
+    if (activity == 'P' || activity == 'Q') {
       nodeId = strtoul(strtokIndex, NULL, 10);
       strtokIndex = strtok(NULL, " ");
       pin = strtoul(strtokIndex, NULL, 10);
-      strtokIndex = strtok(NULL, " ");
-      state = strtoul(strtokIndex, NULL, 10); // get value of the angle or dimming
+      if (activity == 'P') {
+        strtokIndex = strtok(NULL, " ");
+        state = strtoul(strtokIndex, NULL, 10); // get value of the angle or dimming
+      }
     } else if (activity == 'A' || activity == 'D' || activity == 'S' || activity == 'V') {
       nodeId = strtoul(strtokIndex, NULL, 10);
       strtokIndex = strtok(NULL, " ");
@@ -97,13 +99,17 @@ void processSerialInput(RF24Mesh *mesh) {
       case 'P':
         // <P nodeId pin state> - Set the specified pin on the network node high/low
         Serial.println(F("Set network node's digital pin state"));
-        setNetworkNodePin(mesh, nodeId, pin, state);
+        if (!setNetworkNodePin(mesh, nodeId, pin, state)) {
+          Serial.println(F("Failed to write to mesh node"));
+        }
         break;
 
       case 'Q':
         // <Q nodeId pin> - Read network node's digital pin
         Serial.println(F("Read network node's digital pin state"));
-        readNetworkNodePin(mesh, nodeId, pin);
+        if (!readNetworkNodePin(mesh, nodeId, pin)) {
+          Serial.println(F("Failed to write to mesh node"));
+        }
         break;
 
       case 'S':

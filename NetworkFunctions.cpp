@@ -34,19 +34,14 @@ void processNetwork() {
   if (network.available()) {
     RF24NetworkHeader header;
     network.peek(header);
-    // unsigned long data;
     Serial.print(F("Packet type "));
     Serial.print(header.type);
     Serial.print(F(" from "));
     Serial.println(header.from_node, OCT);
     switch (header.type) {
-      // case PacketType::NodeDeviceCount:
-      //   processNodeDeviceCount(header, data);
-      //   break;
-      
-      // case PacketType::NodeDeviceList:
-      //   processNodeDevices(header, data);
-      //   break;
+      case PacketType::ReadDigitalPin:
+        processNetworkNodePin(header, network, mesh);
+        break;
       
       default:
         network.read(header, 0, 0);
@@ -91,7 +86,7 @@ bool readDigitalPin(RF24Mesh *mesh, uint8_t nodeId, uint8_t muxAddress, uint8_t 
   return 0;
 }
 
-void setNetworkNodePin(RF24Mesh *mesh, uint8_t nodeId, uint8_t pin, bool state) {
+bool setNetworkNodePin(RF24Mesh *mesh, uint8_t nodeId, uint8_t pin, bool state) {
   int16_t nodeAddress = mesh->getAddress(nodeId);
   Serial.print(F("Set pin state Node|Address|Pin|State: "));
   Serial.print(nodeId);
@@ -102,9 +97,8 @@ void setNetworkNodePin(RF24Mesh *mesh, uint8_t nodeId, uint8_t pin, bool state) 
   Serial.print(F("|"));
   Serial.println(state);
   byte pinState[2] = {pin, state};
-  if (!mesh->write(nodeAddress, &pinState, PacketType::SetDigitalPin, sizeof(pinState))) {
-    Serial.println(F("Network node could not be written to"));
-  }
+  if (mesh->write(nodeAddress, &pinState, PacketType::SetDigitalPin, sizeof(pinState))) return true;
+  return false;
 }
 
 bool readNetworkNodePin(RF24Mesh *mesh, uint8_t nodeId, uint8_t pin) {
@@ -115,10 +109,23 @@ bool readNetworkNodePin(RF24Mesh *mesh, uint8_t nodeId, uint8_t pin) {
   Serial.print(nodeAddress, OCT);
   Serial.print(F("|"));
   Serial.println(pin);
-  if (!mesh->write(nodeAddress, &pin, PacketType::ReadDigitalPin, sizeof(pin))) {
-    Serial.println(F("Network node could not be written to"));
-  }
-  return true;
+  if (mesh->write(nodeAddress, &pin, PacketType::ReadDigitalPin, sizeof(pin))) return true;
+  return false;
+}
+
+void processNetworkNodePin(RF24NetworkHeader &header, RF24Network &network, RF24Mesh &mesh) {
+  byte pinState[2];
+  network.read(header, &pinState, sizeof(pinState));
+  int16_t nodeAddress = header.from_node;
+  uint8_t nodeId = mesh.getNodeID(nodeAddress);
+  Serial.print(F("Received pin state Node|Address|Pin|State: "));
+  Serial.print(nodeId);
+  Serial.print(F("|"));
+  Serial.print(nodeAddress, OCT);
+  Serial.print(F("|"));
+  Serial.print(pinState[0]);
+  Serial.print(F("|"));
+  Serial.println(pinState[1]);
 }
 
 void setPWMPin(RF24Mesh *mesh, uint8_t nodeId, uint8_t muxAddress, uint8_t muxChannel, uint8_t deviceAddress, uint8_t pin, uint16_t pwmValue) {
