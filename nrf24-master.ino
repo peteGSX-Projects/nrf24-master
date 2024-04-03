@@ -35,6 +35,7 @@ void setup() {
   while (!Serial) {}  // some boards need this because of native USB capability
   delay(2000);
   Serial.println(F("nRF24L01 mesh testing"));
+  setupNetwork();
   displayHelp();
 }
 

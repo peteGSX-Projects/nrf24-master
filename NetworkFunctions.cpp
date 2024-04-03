@@ -101,7 +101,8 @@ void setNetworkNodePin(RF24Mesh *mesh, uint8_t nodeId, uint8_t pin, bool state) 
   Serial.print(pin);
   Serial.print(F("|"));
   Serial.println(state);
-  if (!mesh->write(nodeAddress, &state, PacketType::SetDigitalPin, sizeof(state))) {
+  byte pinState[2] = {pin, state};
+  if (!mesh->write(nodeAddress, &pinState, PacketType::SetDigitalPin, sizeof(pinState))) {
     Serial.println(F("Network node could not be written to"));
   }
 }
