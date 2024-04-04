@@ -55,7 +55,7 @@ void processSerialInput(RF24Mesh *mesh) {
         strtokIndex = strtok(NULL, " ");
         state = strtoul(strtokIndex, NULL, 10); // get value of the angle or dimming
       }
-    } else if (activity == 'A' || activity == 'D' || activity == 'S' || activity == 'V') {
+    } else if (activity == 'A' || activity == 'D' || activity == 'I' || activity == 'S' || activity == 'V') {
       nodeId = strtoul(strtokIndex, NULL, 10);
       strtokIndex = strtok(NULL, " ");
       muxAddress = strtoul(strtokIndex, NULL, 16);
@@ -86,6 +86,14 @@ void processSerialInput(RF24Mesh *mesh) {
         readDigitalPin(mesh, nodeId, muxAddress, muxAddress, deviceAddress, pin);
         break;
       
+      case 'I':
+        // <I nodeId muxAddress muxChannel deviceAddress> - Initialise EX-IOExpander on Nano at default Vpin 800
+        Serial.println(F("Initialise EX-IOExpander"));
+        if (!initialiseEXIOExpander(mesh, nodeId, muxAddress, muxChannel, deviceAddress)) {
+          Serial.println(F("Failed to write to mesh node"));
+        }
+        break;
+
       case 'H':
         // <H> display help
         displayHelp();
@@ -137,6 +145,7 @@ void displayHelp() {
   Serial.println(F("<A nodeId muxAddress muxChannel deviceAddress pin> - Read analogue value from I2C device pin"));
   Serial.println(F("<D nodeId muxAddress muxChannel deviceAddress pin> - Read digital state from I2C device pin"));
   Serial.println(F("<H> - Display this help"));
+  Serial.println(F("<I nodeId muxAddress muxChannel deviceAddress> - Initialise EX-IOExpander on Nano at default Vpin 800"));
   Serial.println(F("<N> - Display all network nodes"));
   Serial.println(F("<P nodeId pin state> - Set state of the pin on the node"));
   Serial.println(F("<S nodeId muxAddress muxChannel deviceAddress pin servoPWM> - Set servo on I2C device to PWM value"));
