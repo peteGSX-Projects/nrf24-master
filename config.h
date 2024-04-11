@@ -12,7 +12,6 @@
 #define SDA_PIN PB7
 #elif defined(ARDUINO_AVR_NANO)
 #define BOARD_TYPE F("Arduino Nano")
-#define NODE_ID 1
 #define CS_PIN 10
 #define SCK_PIN 13
 #define MISO_PIN 12
@@ -20,6 +19,15 @@
 #define CE_PIN 9
 #define SCL_PIN A5
 #define SDA_PIN A4
+#elif defined(ARDUINO_NUCLEO_F411RE)
+#define BOARD_TYPE F("Nucleo F411RE")
+#define CS_PIN PB6
+#define SCK_PIN PA5
+#define MISO_PIN PA6
+#define MOSI_PIN PA7
+#define CE_PIN PC7
+#define SCL_PIN PB8
+#define SDA_PIN PB9
 #else
 #error Unsupported microprocessor type selected
 #endif
