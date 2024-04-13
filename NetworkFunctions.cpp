@@ -1,5 +1,7 @@
 #include "NetworkFunctions.h"
 
+SPIClass SPI_PINS(MOSI_PIN, MISO_PIN, SCK_PIN, CS_PIN);
+
 /**** Configure the nrf24l01 CE and CS pins ****/
 RF24 radio(CE_PIN, CS_PIN);
 RF24Network network(radio);
@@ -7,9 +9,10 @@ RF24Mesh mesh(radio, network);
 
 void setupNetwork() {
   Serial.print(F("Setup network master, node ID: "));
+  SPI_PINS.begin();
   mesh.setNodeID(0);
   Serial.println(mesh.getNodeID());
-  radio.begin();
+  radio.begin(&SPI_PINS);
   radio.setPALevel(RF24_PA_MIN, 0);
   if (!mesh.begin()) {
     Serial.println(F("Radio hardware not responding"));

@@ -21,11 +21,16 @@
 #define SDA_PIN A4
 #elif defined(ARDUINO_NUCLEO_F411RE)
 #define BOARD_TYPE F("Nucleo F411RE")
-#define CS_PIN PB6
-#define SCK_PIN PA5
-#define MISO_PIN PA6
-#define MOSI_PIN PA7
-#define CE_PIN PC7
+#define CS_PIN PB12   // PB6
+#define SCK_PIN PB13  // PA5
+#define MISO_PIN PB14 // PA6
+#define MOSI_PIN PB15 // PA7
+#define CE_PIN PB1    // PC7
+// #define CS_PIN PB6
+// #define SCK_PIN PA5
+// #define MISO_PIN PA6
+// #define MOSI_PIN PA7
+// #define CE_PIN PC7
 #define SCL_PIN PB8
 #define SDA_PIN PB9
 #else
